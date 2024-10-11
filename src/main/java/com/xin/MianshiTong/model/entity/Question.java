@@ -9,13 +9,12 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 用户
- *
- * @TableName user
+ * 题目
+ * @TableName question
  */
-@TableName(value = "user")
+@TableName(value ="question")
 @Data
-public class User implements Serializable {
+public class Question implements Serializable {
     /**
      * id
      */
@@ -23,51 +22,74 @@ public class User implements Serializable {
     private Long id;
 
     /**
-     * 账号
+     * 标题
      */
-    private String userAccount;
+    private String title;
 
     /**
-     * 密码
+     * 内容
      */
-    private String userPassword;
+    private String content;
 
     /**
-     * 用户昵称
+     * 标签列表（json 数组）
      */
-    private String userName;
+    private String tags;
 
     /**
-     * 用户头像
+     * 推荐答案
      */
-    private String userAvatar;
+    private String answer;
 
     /**
-     * 用户简介
+     * 创建用户 id
      */
-    private String userProfile;
+    private Long userId;
 
     /**
-     * 用户角色：user/admin/ban
+     * 审核状态（0-待审核，1-通过，2-拒绝）
      */
-    private String userRole;
+    private Integer reviewStatus;
 
     /**
-     * 会员过期时间
+     * 审核信息
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date vipExpireTime;
+    private String reviewMessage;
 
     /**
-     * 会员兑换码
+     * 审核用户 id
      */
-    private String vipCode;
+    private Long reviewUserId;
 
     /**
-     * 会员编号
+     * 审核时间
      */
-    private Long vipNumber;
+    private Date reviewTime;
+
+    /**
+     * 浏览数
+     */
+    private Integer viewNum;
+
+    /**
+     * 点赞数
+     */
+    private Integer thumbNum;
+
+    /**
+     * 收藏数
+     */
+    private Integer favourNum;
+
+    /**
+     * 是否需要会员(1 表示仅会员可见)
+     */
+    private Integer needVip;
+
+    /**
+     * 优先级
+     */
+    private Integer priority;
 
     /**
      * 编辑时间
@@ -89,9 +111,6 @@ public class User implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
-
-    @TableField(exist = false)
-    private String token;
 
     /**
      * 是否删除

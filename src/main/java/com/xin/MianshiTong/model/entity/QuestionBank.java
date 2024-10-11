@@ -9,65 +9,64 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 用户
- *
- * @TableName user
+ * 题库
+ * @TableName question_bank
  */
-@TableName(value = "user")
+@TableName(value ="question_bank")
 @Data
-public class User implements Serializable {
+public class QuestionBank implements Serializable {
     /**
      * id
      */
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
-     * 账号
+     * 标题
      */
-    private String userAccount;
+    private String title;
 
     /**
-     * 密码
+     * 描述
      */
-    private String userPassword;
+    private String description;
 
     /**
-     * 用户昵称
+     * 图片
      */
-    private String userName;
+    private String picture;
 
     /**
-     * 用户头像
+     * 创建用户 id
      */
-    private String userAvatar;
+    private Long userId;
 
     /**
-     * 用户简介
+     * 优先级
      */
-    private String userProfile;
+    private Integer priority;
 
     /**
-     * 用户角色：user/admin/ban
+     * 审核状态（0-待审核，1-通过，2-拒绝）
      */
-    private String userRole;
+    private Integer reviewStatus;
 
     /**
-     * 会员过期时间
+     * 审核信息
+     */
+    private String reviewMessage;
+
+    /**
+     * 审核用户 id
+     */
+    private Long reviewUserId;
+
+    /**
+     * 审核时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private Date vipExpireTime;
-
-    /**
-     * 会员兑换码
-     */
-    private String vipCode;
-
-    /**
-     * 会员编号
-     */
-    private Long vipNumber;
+    private Date reviewTime;
 
     /**
      * 编辑时间
@@ -89,9 +88,6 @@ public class User implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updateTime;
-
-    @TableField(exist = false)
-    private String token;
 
     /**
      * 是否删除

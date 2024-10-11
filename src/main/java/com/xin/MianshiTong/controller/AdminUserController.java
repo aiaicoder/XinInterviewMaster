@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 
-import static com.xin.MianshiTong.service.impl.UserServiceImpl.SALT;
+
 
 /**
  * @author <a href="https://github.com/aiaicoder">  小新
@@ -35,6 +35,8 @@ public class AdminUserController {
 
     @Resource
     private UserService userService;
+
+    private String SALT = "xin";
 
 
     // region 增删改查
@@ -107,7 +109,6 @@ public class AdminUserController {
      * @return
      */
     @GetMapping("/get")
-    @SaCheckLogin
     @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserById(long id) {
         if (id <= 0) {
