@@ -3,6 +3,10 @@ package com.xin.MianshiTong.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xin.MianshiTong.model.entity.Question;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
 
 /**
 * @author 15712
@@ -11,6 +15,7 @@ import com.xin.MianshiTong.model.entity.Question;
 * @Entity generator.domain.Question
 */
 public interface QuestionMapper extends BaseMapper<Question> {
+    List<Question> listQuestionWithDelete(@Param("fiveMinutesAgoDate") Date fiveMinutesAgoDate);
 
 }
 

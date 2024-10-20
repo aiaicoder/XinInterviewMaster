@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.xin.MianshiTong.model.entity.Question;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -39,12 +40,10 @@ public class QuestionVO implements Serializable {
      */
     private Long userId;
 
-
     /**
      * 推荐答案
      */
     private String answer;
-
     /**
      * 浏览数
      */
@@ -93,6 +92,25 @@ public class QuestionVO implements Serializable {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updateTime;
+
+    /**
+     * 审核状态（0-待审核，1-通过，2-拒绝）
+     */
+    private Integer reviewStatus;
+
+    /**
+     * 审核用户 id
+     */
+    private Long reviewUserId;
+
+
+    /**
+     * 审核时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date reviewTime;
+
 
     /**
      * 封装类转对象

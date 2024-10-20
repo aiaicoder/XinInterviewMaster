@@ -64,6 +64,8 @@ public class Question implements Serializable {
     /**
      * 审核时间
      */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date reviewTime;
 
     /**
@@ -75,11 +77,6 @@ public class Question implements Serializable {
      * 点赞数
      */
     private Integer thumbNum;
-
-    /**
-     * 收藏数
-     */
-    private Integer favourNum;
 
     /**
      * 是否需要会员(1 表示仅会员可见)
@@ -117,6 +114,7 @@ public class Question implements Serializable {
      */
     @TableLogic
     private Integer isDelete;
+
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

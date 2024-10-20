@@ -7,7 +7,6 @@ import com.xin.MianshiTong.model.dto.user.UserQueryRequest;
 import com.xin.MianshiTong.model.entity.User;
 import com.xin.MianshiTong.model.vo.LoginUserVO;
 import com.xin.MianshiTong.model.vo.UserVO;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -29,16 +28,6 @@ public interface UserService extends IService<User> {
      * @return 新用户 id
      */
     long userRegister(String userAccount, String userPassword, String checkPassword);
-
-    /**
-     * 用户登录
-     *
-     * @param userAccount  用户账户
-     * @param userPassword 用户密码
-     * @param request
-     * @return 脱敏后的用户信息
-     */
-    LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
 
     /**
@@ -66,6 +55,12 @@ public interface UserService extends IService<User> {
      * @return
      */
     User getLoginUser();
+
+    /**
+     * 获取当前登录用户不抛出异常
+     * @return
+     */
+    User getLoginUserNe();
 
 
 
@@ -140,4 +135,17 @@ public interface UserService extends IService<User> {
      */
     QueryWrapper<User> getQueryWrapper(UserQueryRequest userQueryRequest);
 
+    /**
+     * 用户签到
+     * @return
+     */
+    boolean userSign(Long userId);
+
+    /**
+     * 获取用户签到记录
+     * @param userId 用户id
+     * @param year 年份
+     * @return
+     */
+    List<Integer> getUserSignRecord(Long userId,Integer year);
 }

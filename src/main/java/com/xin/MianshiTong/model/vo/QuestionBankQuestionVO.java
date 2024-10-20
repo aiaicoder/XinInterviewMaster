@@ -1,13 +1,13 @@
 package com.xin.MianshiTong.model.vo;
 
-import cn.hutool.json.JSONUtil;
-import com.xin.MianshiTong.model.entity.QuestionBankQuestion;
-import lombok.Data;
+import java.io.Serializable;
+
 import org.springframework.beans.BeanUtils;
 
-import java.io.Serializable;
-import java.util.Date;
-import java.util.List;
+import com.xin.MianshiTong.model.entity.QuestionBankQuestion;
+
+import lombok.Data;
+
 
 /**
  * 题目题库关联视图

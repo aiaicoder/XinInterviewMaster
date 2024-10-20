@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xin.MianshiTong.common.ErrorCode;
 import com.xin.MianshiTong.constant.CommonConstant;
+import com.xin.MianshiTong.constant.RedisConstant;
 import com.xin.MianshiTong.exception.BusinessException;
 import com.xin.MianshiTong.mapper.UserMapper;
 import com.xin.MianshiTong.model.dto.user.UserQueryRequest;
@@ -19,12 +20,18 @@ import com.xin.MianshiTong.service.UserService;
 import com.xin.MianshiTong.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RBitSet;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +54,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 盐值，混淆密码
      */
     public static final String SALT = "xin";
+
+    @Resource
+    private RedissonClient redissonClient;
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -93,37 +103,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
             return user.getId();
         }
-    }
-
-    @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
-        // 1. 校验
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
-        }
-        if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号错误");
-        }
-        if (userPassword.length() < 8) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
-        }
-        // 2. 加密
-        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
-        // 查询用户是否存在
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userAccount", userAccount);
-        queryWrapper.eq("userPassword", encryptPassword);
-        User user = this.baseMapper.selectOne(queryWrapper);
-        // 用户不存在
-        if (user == null) {
-            log.info("user login failed, userAccount cannot match userPassword");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
-        }
-        StpUtil.login(user.getId());
-        // 3. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
-        StpUtil.getSession().set(USER_LOGIN_STATE, user);
-        return this.getLoginUserVO(user);
     }
 
     @Override
@@ -192,6 +171,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
         return currentUser;
+    }
+
+    @Override
+    public User getLoginUserNe() {
+        // 先判断是否已登录
+        Object userObj = StpUtil.getSession().get(USER_LOGIN_STATE);
+        return (User) userObj;
     }
 
 
@@ -312,5 +298,51 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
+    }
+    
+    /**
+     * 用户签到
+     * @param userId
+     * @return
+     * 这里的bitset是redisson的bitmap，可以理解为bitmap是一个byte数组，每个byte的每一位都可以表示一个状态，
+     * 这里我们用每一位表示一天，如果为1则表示签到，为0则表示未签到
+     * 并且大小是动态的，因为每年的天数不一样，所以需要动态获取
+     */
+    @Override
+    public boolean userSign(Long userId) {
+        LocalDate localDate = LocalDate.now();
+        String key = RedisConstant.getSignKey(localDate.getYear(), userId);
+        //使用redisson的bitmap
+        RBitSet bitSet = redissonClient.getBitSet(key);
+        //获取当前日期作为偏移量(从1开始计数)
+        int offset = localDate.getDayOfYear();
+        //获取当前日期是否签到
+        boolean isSigned = bitSet.get(offset);
+        if (!isSigned) {
+            //设置过期时间
+            bitSet.set(offset, true);
+            // 动态获取当前年份的天数
+            int daysInYear = localDate.lengthOfYear();
+            // 设置过期时间为当前年份的天数
+            bitSet.expire(Duration.ofDays(daysInYear));
+        }
+        //签到
+        return true;
+    }
+
+    @Override
+    public List<Integer> getUserSignRecord(Long userId, Integer year) {
+        String key = RedisConstant.getSignKey(year, userId);
+        RBitSet bitSet = redissonClient.getBitSet(key);
+        //将bitSet转换为BitSetLocal,直接拿到所有的结果进行本地判断
+        BitSet bitSetLocal = bitSet.asBitSet();
+        List<Integer> result = new ArrayList<>();
+        //从0开始获取下一个为1的位置
+        int i = bitSetLocal.nextSetBit(0);
+        while (i != -1) {
+            result.add(i);
+            i = bitSetLocal.nextSetBit(i + 1);
+        }
+        return result;
     }
 }

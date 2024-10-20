@@ -1,4 +1,4 @@
-package com.xin.MianshiTong.config;
+package com.xin.MianshiTong.config.COS;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

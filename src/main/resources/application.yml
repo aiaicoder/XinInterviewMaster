@@ -44,8 +44,8 @@ spring:
           min-idle: 0
   # Elasticsearch 配置
   # todo 需替换配置，然后取消注释
-  #  elasticsearch:
-  #    uris: http://localhost:9200
+  elasticsearch:
+    uris: http://10.101.100.2:9200
   #    username: root
   #    password: 123456
   # 文件上传

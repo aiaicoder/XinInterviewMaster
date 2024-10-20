@@ -3,7 +3,7 @@ package com.xin.MianshiTong.manager;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
-import com.xin.MianshiTong.config.CosClientConfig;
+import com.xin.MianshiTong.config.COS.CosClientConfig;
 import java.io.File;
 import javax.annotation.Resource;
 import org.springframework.stereotype.Component;

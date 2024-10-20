@@ -1,11 +1,22 @@
 package com.xin.MianshiTong.controller;
 
-import cn.dev33.satoken.stp.StpUtil;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xin.MianshiTong.common.BaseResponse;
 import com.xin.MianshiTong.common.ErrorCode;
 import com.xin.MianshiTong.common.ResultUtils;
-import com.xin.MianshiTong.config.WxOpenConfig;
 import com.xin.MianshiTong.constant.UserConstant;
 import com.xin.MianshiTong.exception.BusinessException;
 import com.xin.MianshiTong.exception.ThrowUtils;
@@ -18,23 +29,9 @@ import com.xin.MianshiTong.model.vo.LoginUserVO;
 import com.xin.MianshiTong.model.vo.UserVO;
 import com.xin.MianshiTong.service.UserService;
 
-import java.util.List;
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.stp.StpUtil;
 import lombok.extern.slf4j.Slf4j;
-import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
-import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
-import me.chanjar.weixin.mp.api.WxMpService;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 用户接口
@@ -49,11 +46,6 @@ public class UserController {
 
     @Resource
     private UserService userService;
-
-    @Resource
-    private WxOpenConfig wxOpenConfig;
-
-
 
     /**
      * 用户注册
@@ -181,5 +173,31 @@ public class UserController {
         StpUtil.getSession().set(UserConstant.USER_LOGIN_STATE, loginUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+
+    /**
+     * 用户签到
+     * @return
+     */
+    @PostMapping("add/sign")
+    @SaCheckLogin
+    public BaseResponse<Boolean> userSign() {
+        //只有登录了才能签到
+        User loginUser = userService.getLoginUser();
+        Long userId = loginUser.getId();
+        boolean result = userService.userSign(userId);
+        return ResultUtils.success(result);
+    }
+
+
+    @GetMapping("get/user_sign")
+    @SaCheckLogin
+    public BaseResponse<List<Integer>> getUserSignRecord(Integer year) {
+        //只有登录了才能签到
+        User loginUser = userService.getLoginUser();
+        Long userId = loginUser.getId();
+        List<Integer> result = userService.getUserSignRecord(userId,year);
+        return ResultUtils.success(result);
     }
 }

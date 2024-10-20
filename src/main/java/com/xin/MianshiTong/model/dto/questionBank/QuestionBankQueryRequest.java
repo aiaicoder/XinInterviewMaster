@@ -40,11 +40,6 @@ public class QuestionBankQueryRequest extends PageRequest implements Serializabl
     private String title;
 
     /**
-     * 内容
-     */
-    private String content;
-
-    /**
      * 描述
      */
     private String description;
@@ -53,6 +48,16 @@ public class QuestionBankQueryRequest extends PageRequest implements Serializabl
      * 优先级
      */
     private Integer priority;
+
+    /**
+     * 图片查询
+     */
+    private String picture;
+
+    /**
+     * 是否需要查询题目例表
+     */
+    private Boolean needQuestionList;
 
     private static final long serialVersionUID = 1L;
 }

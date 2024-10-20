@@ -34,4 +34,8 @@
         editTime,createTime,updateTime,
         isDelete
     </sql>
+
+    <select id="listQuestionWithDelete" resultType="com.xin.MianshiTong.model.entity.Question">
+        select * from question where updateTime > #{fiveMinutesAgoDate}
+    </select>
 </mapper>

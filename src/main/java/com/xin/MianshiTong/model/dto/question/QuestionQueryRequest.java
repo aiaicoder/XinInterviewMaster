@@ -63,6 +63,11 @@ public class QuestionQueryRequest extends PageRequest implements Serializable {
      */
     private Integer priority;
 
+    /**
+     * 题库id
+     */
+    private Long questionBankId;
+
 
     /**
      * 创建用户 id

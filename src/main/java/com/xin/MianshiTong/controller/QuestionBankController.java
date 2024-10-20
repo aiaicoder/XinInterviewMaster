@@ -10,14 +10,17 @@ import com.xin.MianshiTong.common.ResultUtils;
 import com.xin.MianshiTong.constant.UserConstant;
 import com.xin.MianshiTong.exception.BusinessException;
 import com.xin.MianshiTong.exception.ThrowUtils;
+import com.xin.MianshiTong.model.dto.question.QuestionQueryRequest;
 import com.xin.MianshiTong.model.dto.questionBank.QuestionBankAddRequest;
 import com.xin.MianshiTong.model.dto.questionBank.QuestionBankEditRequest;
 import com.xin.MianshiTong.model.dto.questionBank.QuestionBankQueryRequest;
 import com.xin.MianshiTong.model.dto.questionBank.QuestionBankUpdateRequest;
+import com.xin.MianshiTong.model.entity.Question;
 import com.xin.MianshiTong.model.entity.QuestionBank;
 import com.xin.MianshiTong.model.entity.User;
 import com.xin.MianshiTong.model.vo.QuestionBankVO;
 import com.xin.MianshiTong.service.QuestionBankService;
+import com.xin.MianshiTong.service.QuestionService;
 import com.xin.MianshiTong.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -25,10 +28,11 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * 题库接口
- *
+ * 增删改操作全部只能管理员
  * @author <a href="https://github.com/aiaicoder">程序员小新</a>
  * @from <a href="https://www.code-nav.cn">编程导航学习圈</a>
  */
@@ -43,6 +47,9 @@ public class QuestionBankController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private QuestionService questionService;
+
     // region 增删改查
 
     /**
@@ -52,15 +59,14 @@ public class QuestionBankController {
      * @return
      */
     @PostMapping("/add")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addQuestionBank(@RequestBody QuestionBankAddRequest questionBankAddRequest) {
         ThrowUtils.throwIf(questionBankAddRequest == null, ErrorCode.PARAMS_ERROR);
-        // todo 在此处将实体类和 DTO 进行转换
+        User loginUser = userService.getLoginUser();
         QuestionBank questionBank = new QuestionBank();
         BeanUtils.copyProperties(questionBankAddRequest, questionBank);
         // 数据校验
         questionBankService.validQuestionBank(questionBank, true);
-        // todo 填充默认值
-        User loginUser = userService.getLoginUser();
         questionBank.setUserId(loginUser.getId());
         // 写入数据库
         boolean result = questionBankService.save(questionBank);
@@ -77,6 +83,7 @@ public class QuestionBankController {
      * @return
      */
     @PostMapping("/delete")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteQuestionBank(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -108,7 +115,6 @@ public class QuestionBankController {
         if (questionBankUpdateRequest == null || questionBankUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo 在此处将实体类和 DTO 进行转换
         QuestionBank questionBank = new QuestionBank();
         BeanUtils.copyProperties(questionBankUpdateRequest, questionBank);
         // 数据校验
@@ -124,19 +130,28 @@ public class QuestionBankController {
     }
 
     /**
-     * 根据 id 获取题库（封装类）
+     * 获取题库（封装类）
      *
-     * @param id
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionBankVO> getQuestionBankVOById(long id) {
+    public BaseResponse<QuestionBankVO> getQuestionBankVoById(QuestionBankQueryRequest questionBankQueryRequest) {
+        ThrowUtils.throwIf(questionBankQueryRequest==null,ErrorCode.PARAMS_ERROR);
+        Long id = questionBankQueryRequest.getId();
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
+        Boolean needQuestionList = questionBankQueryRequest.getNeedQuestionList();
         QuestionBank questionBank = questionBankService.getById(id);
         ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR);
+        QuestionBankVO questionBankVO = questionBankService.getQuestionBankVO(questionBank);
+        if (Boolean.TRUE.equals(needQuestionList)){
+            QuestionQueryRequest questionQueryRequest = new QuestionQueryRequest();
+            questionQueryRequest.setQuestionBankId(id);
+            Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
+            questionBankVO.setQuestionList(questionPage);
+        }
         // 获取封装类
-        return ResultUtils.success(questionBankService.getQuestionBankVO(questionBank));
+        return ResultUtils.success(questionBankVO);
     }
 
     /**
@@ -163,7 +178,7 @@ public class QuestionBankController {
      * @return
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<QuestionBankVO>> listQuestionBankVOByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
+    public BaseResponse<Page<QuestionBankVO>> listQuestionBankVoByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
         long current = questionBankQueryRequest.getCurrent();
         long size = questionBankQueryRequest.getPageSize();
         // 限制爬虫
@@ -182,7 +197,7 @@ public class QuestionBankController {
      * @return
      */
     @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<QuestionBankVO>> listMyQuestionBankVOByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
+    public BaseResponse<Page<QuestionBankVO>> listMyQuestionBankVoByPage(@RequestBody QuestionBankQueryRequest questionBankQueryRequest) {
         ThrowUtils.throwIf(questionBankQueryRequest == null, ErrorCode.PARAMS_ERROR);
         // 补充查询条件，只查询当前登录用户的数据
         User loginUser = userService.getLoginUser();
@@ -198,22 +213,22 @@ public class QuestionBankController {
     }
 
     /**
-     * 编辑题库（给用户使用）
+     * 编辑题库
      *
      * @param questionBankEditRequest
      * @return
      */
     @PostMapping("/edit")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> editQuestionBank(@RequestBody QuestionBankEditRequest questionBankEditRequest) {
         if (questionBankEditRequest == null || questionBankEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo 在此处将实体类和 DTO 进行转换
+        User loginUser = userService.getLoginUser();
         QuestionBank questionBank = new QuestionBank();
         BeanUtils.copyProperties(questionBankEditRequest, questionBank);
         // 数据校验
         questionBankService.validQuestionBank(questionBank, false);
-        User loginUser = userService.getLoginUser();
         // 判断是否存在
         long id = questionBankEditRequest.getId();
         QuestionBank oldQuestionBank = questionBankService.getById(id);
@@ -227,6 +242,4 @@ public class QuestionBankController {
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
-
-    // endregion
 }

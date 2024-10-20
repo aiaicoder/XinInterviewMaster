@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import com.xin.MianshiTong.model.dto.QuestionBankQuestion.QuestionBankQuestionQueryRequest;
+import com.xin.MianshiTong.model.entity.QuestionBank;
 import com.xin.MianshiTong.model.entity.QuestionBankQuestion;
 import com.xin.MianshiTong.model.vo.QuestionBankQuestionVO;
 
@@ -22,9 +23,9 @@ public interface QuestionBankQuestionService extends IService<QuestionBankQuesti
      * 校验数据
      *
      * @param questionBankQuestion
-     * @param add 对创建的数据进行校验
+     * @param add      对创建的数据进行校验
      */
-    void validQuestionBankQuestion(QuestionBankQuestion questionBankQuestion, boolean add);
+    void validQuestionBank(QuestionBankQuestion questionBankQuestion, boolean add);
 
     /**
      * 获取查询条件

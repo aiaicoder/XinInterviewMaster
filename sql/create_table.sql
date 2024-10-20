@@ -62,7 +62,6 @@ create table if not exists question
     reviewTime    datetime                           null comment '审核时间',
     viewNum    int      default 0                 not null comment '浏览数',
     thumbNum   int      default 0                 not null comment '点赞数',
-    favourNum  int      default 0                 not null comment '收藏数',
     needVip    tinyint  default 0                 not null comment '是否需要会员(1 表示仅会员可见)',
     priority   int      default 0                 null comment '优先级',
     editTime   datetime default CURRENT_TIMESTAMP not null comment '编辑时间',

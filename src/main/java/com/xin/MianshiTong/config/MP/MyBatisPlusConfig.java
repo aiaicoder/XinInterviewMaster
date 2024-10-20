@@ -1,4 +1,4 @@
-package com.xin.MianshiTong.config;
+package com.xin.MianshiTong.config.MP;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;

@@ -1,8 +1,14 @@
 package com.xin.MianshiTong.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.ArrayUtils;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xin.MianshiTong.annotation.AuthCheck;
 import com.xin.MianshiTong.common.BaseResponse;
 import com.xin.MianshiTong.common.DeleteRequest;
 import com.xin.MianshiTong.common.ErrorCode;
@@ -15,8 +21,12 @@ import com.xin.MianshiTong.model.dto.question.QuestionEditRequest;
 import com.xin.MianshiTong.model.dto.question.QuestionQueryRequest;
 import com.xin.MianshiTong.model.dto.question.QuestionUpdateRequest;
 import com.xin.MianshiTong.model.entity.Question;
+import com.xin.MianshiTong.model.entity.QuestionBank;
+import com.xin.MianshiTong.model.entity.QuestionBankQuestion;
 import com.xin.MianshiTong.model.entity.User;
+import com.xin.MianshiTong.model.enums.UserRoleEnum;
 import com.xin.MianshiTong.model.vo.QuestionVO;
+import com.xin.MianshiTong.service.QuestionBankQuestionService;
 import com.xin.MianshiTong.service.QuestionService;
 import com.xin.MianshiTong.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 题目接口
@@ -43,6 +54,8 @@ public class QuestionController {
     @Resource
     private UserService userService;
 
+
+
     // region 增删改查
 
     /**
@@ -52,14 +65,19 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/add")
+    @SaCheckRole({UserConstant.ADMIN_ROLE, UserConstant.VIP_ROLE})
     public BaseResponse<Long> addQuestion(@RequestBody QuestionAddRequest questionAddRequest) {
         ThrowUtils.throwIf(questionAddRequest == null, ErrorCode.PARAMS_ERROR);
-        // todo 在此处将实体类和 DTO 进行转换
+        List<String> tags = questionAddRequest.getTags();
+
         Question question = new Question();
         BeanUtils.copyProperties(questionAddRequest, question);
+        if (tags != null) {
+            String tagsString = JSONUtil.toJsonStr(tags);
+            question.setTags(tagsString);
+        }
         // 数据校验
         questionService.validQuestion(question, true);
-        // todo 填充默认值
         User loginUser = userService.getLoginUser();
         question.setUserId(loginUser.getId());
         // 写入数据库
@@ -77,6 +95,7 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/delete")
+    @SaCheckRole({UserConstant.ADMIN_ROLE, UserConstant.VIP_ROLE})
     public BaseResponse<Boolean> deleteQuestion(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -87,9 +106,7 @@ public class QuestionController {
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
-        if (!oldQuestion.getUserId().equals(user.getId()) && !userService.isAdmin(user)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        checkRole(user, oldQuestion);
         // 操作数据库
         boolean result = questionService.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -103,14 +120,18 @@ public class QuestionController {
      * @return
      */
     @PostMapping("/update")
-    @SaCheckRole(UserConstant.ADMIN_ROLE)
+    @SaCheckRole({UserConstant.ADMIN_ROLE, UserConstant.VIP_ROLE})
     public BaseResponse<Boolean> updateQuestion(@RequestBody QuestionUpdateRequest questionUpdateRequest) {
         if (questionUpdateRequest == null || questionUpdateRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo 在此处将实体类和 DTO 进行转换
         Question question = new Question();
         BeanUtils.copyProperties(questionUpdateRequest, question);
+        List<String> tags = questionUpdateRequest.getTags();
+        if (tags != null) {
+            String tagsString = JSONUtil.toJsonStr(tags);
+            question.setTags(tagsString);
+        }
         // 数据校验
         questionService.validQuestion(question, false);
         // 判断是否存在
@@ -130,11 +151,19 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/get/vo")
-    public BaseResponse<QuestionVO> getQuestionVOById(long id) {
+    public BaseResponse<QuestionVO> getQuestionVoById(long id) {
+        User loginUser = userService.getLoginUserNe();
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询数据库
         Question question = questionService.getById(id);
         ThrowUtils.throwIf(question == null, ErrorCode.NOT_FOUND_ERROR);
+        if (loginUser == null || (question.getNeedVip() == 1 && !loginUser.getUserRole().equals(UserRoleEnum.VIP.getValue()))) {
+            // 只展示部分内容
+            String partialAnswer = getPartialAnswer(question.getAnswer());
+            question.setAnswer(partialAnswer);
+            // 其他需要展示的字段
+            return ResultUtils.success(questionService.getQuestionVO(question));
+        }
         // 获取封装类
         return ResultUtils.success(questionService.getQuestionVO(question));
     }
@@ -148,11 +177,8 @@ public class QuestionController {
     @PostMapping("/list/page")
     @SaCheckRole(UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<Question>> listQuestionByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
-        long current = questionQueryRequest.getCurrent();
-        long size = questionQueryRequest.getPageSize();
-        // 查询数据库
-        Page<Question> questionPage = questionService.page(new Page<>(current, size),
-                questionService.getQueryWrapper(questionQueryRequest));
+        ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
         return ResultUtils.success(questionPage);
     }
 
@@ -176,12 +202,13 @@ public class QuestionController {
     }
 
     /**
-     * 分页获取当前登录用户创建的题目列表
+     * 分页获取当前登录用户创建的题目列表,仅限管理员和会员
      *
      * @param questionQueryRequest
      * @return
      */
     @PostMapping("/my/list/page/vo")
+    @SaCheckRole({UserConstant.ADMIN_ROLE, UserConstant.VIP_ROLE})
     public BaseResponse<Page<QuestionVO>> listMyQuestionVOByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
         ThrowUtils.throwIf(questionQueryRequest == null, ErrorCode.PARAMS_ERROR);
         // 补充查询条件，只查询当前登录用户的数据
@@ -199,35 +226,62 @@ public class QuestionController {
     }
 
     /**
-     * 编辑题目（给用户使用）
+     * 编辑题目
      *
      * @param questionEditRequest
      * @return
      */
     @PostMapping("/edit")
+    @SaCheckRole({UserConstant.ADMIN_ROLE, UserConstant.VIP_ROLE})
     public BaseResponse<Boolean> editQuestion(@RequestBody QuestionEditRequest questionEditRequest) {
         if (questionEditRequest == null || questionEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // todo 在此处将实体类和 DTO 进行转换
+        User loginUser = userService.getLoginUser();
         Question question = new Question();
         BeanUtils.copyProperties(questionEditRequest, question);
+        List<String> tags = questionEditRequest.getTags();
+        if (tags != null) {
+            String tagsString = JSONUtil.toJsonStr(tags);
+            question.setTags(tagsString);
+        }
         // 数据校验
         questionService.validQuestion(question, false);
-        User loginUser = userService.getLoginUser();
         // 判断是否存在
         long id = questionEditRequest.getId();
         Question oldQuestion = questionService.getById(id);
         ThrowUtils.throwIf(oldQuestion == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可编辑
-        if (!oldQuestion.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        checkRole(loginUser, oldQuestion);
         // 操作数据库
         boolean result = questionService.updateById(question);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
 
-    // endregion
+    @PostMapping("/search/page/vo")
+    public BaseResponse<Page<QuestionVO>> searchQuestionVoByPage(@RequestBody QuestionQueryRequest questionQueryRequest) {
+        long size = questionQueryRequest.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 200, ErrorCode.PARAMS_ERROR);
+        // 查询 ES
+         Page<Question> questionPage = questionService.searchFromEs(questionQueryRequest);
+        // 查询数据库（作为没有 ES 的降级方案）
+//        Page<Question> questionPage = questionService.listQuestionByPage(questionQueryRequest);
+        return ResultUtils.success(questionService.getQuestionVOPage(questionPage));
+    }
+
+    private void checkRole(User loginUser, Question oldQuestion) {
+        if (!oldQuestion.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+    }
+
+    //只返回部分内容
+    private String getPartialAnswer(String answer) {
+        if (answer != null && answer.length() > 20) {
+            return answer.substring(0, 20) + "..."; // 只展示前20个字符
+        }
+        return answer;
+    }
 }

@@ -7,8 +7,6 @@ import com.xin.MianshiTong.model.dto.questionBank.QuestionBankQueryRequest;
 import com.xin.MianshiTong.model.entity.QuestionBank;
 import com.xin.MianshiTong.model.vo.QuestionBankVO;
 
-import javax.servlet.http.HttpServletRequest;
-
 /**
  * 题库服务
  *

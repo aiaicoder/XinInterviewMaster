@@ -1,14 +1,15 @@
 package com.xin.MianshiTong.model.vo;
 
-import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.xin.MianshiTong.model.entity.Question;
 import com.xin.MianshiTong.model.entity.QuestionBank;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
 /**
  * 题库视图
@@ -55,6 +56,42 @@ public class QuestionBankVO implements Serializable {
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updateTime;
+
+    /**
+     * 编辑时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date editTime;
+
+    /**
+     * 审核状态（0-待审核，1-通过，2-拒绝）
+     */
+    private Integer reviewStatus;
+
+    /**
+     * 审核用户 id
+     */
+    private Long reviewUserId;
+
+
+    /**
+     * 审核时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date reviewTime;
+
+    /**
+     * 优先级
+     */
+    private Integer priority;
+
+
+    /**
+     * 题目列表
+     */
+    private Page<Question> questionList;
 
 
     /**

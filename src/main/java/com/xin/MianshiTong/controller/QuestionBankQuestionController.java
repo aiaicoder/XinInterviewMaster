@@ -1,8 +1,9 @@
 package com.xin.MianshiTong.controller;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xin.MianshiTong.annotation.AuthCheck;
 import com.xin.MianshiTong.common.BaseResponse;
 import com.xin.MianshiTong.common.DeleteRequest;
 import com.xin.MianshiTong.common.ErrorCode;
@@ -10,10 +11,9 @@ import com.xin.MianshiTong.common.ResultUtils;
 import com.xin.MianshiTong.constant.UserConstant;
 import com.xin.MianshiTong.exception.BusinessException;
 import com.xin.MianshiTong.exception.ThrowUtils;
-
 import com.xin.MianshiTong.model.dto.QuestionBankQuestion.QuestionBankQuestionAddRequest;
-import com.xin.MianshiTong.model.dto.QuestionBankQuestion.QuestionBankQuestionEditRequest;
 import com.xin.MianshiTong.model.dto.QuestionBankQuestion.QuestionBankQuestionQueryRequest;
+import com.xin.MianshiTong.model.dto.QuestionBankQuestion.QuestionBankQuestionRemoveRequest;
 import com.xin.MianshiTong.model.dto.QuestionBankQuestion.QuestionBankQuestionUpdateRequest;
 import com.xin.MianshiTong.model.entity.QuestionBankQuestion;
 import com.xin.MianshiTong.model.entity.User;
@@ -25,7 +25,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * 题目题库接口
@@ -58,8 +57,6 @@ public class QuestionBankQuestionController {
         // todo 在此处将实体类和 DTO 进行转换
         QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
         BeanUtils.copyProperties(questionBankQuestionAddRequest, questionBankQuestion);
-        // 数据校验
-        questionBankQuestionService.validQuestionBankQuestion(questionBankQuestion, true);
         // todo 填充默认值
         User loginUser = userService.getLoginUser();
         questionBankQuestion.setUserId(loginUser.getId());
@@ -112,8 +109,6 @@ public class QuestionBankQuestionController {
         // todo 在此处将实体类和 DTO 进行转换
         QuestionBankQuestion questionBankQuestion = new QuestionBankQuestion();
         BeanUtils.copyProperties(questionBankQuestionUpdateRequest, questionBankQuestion);
-        // 数据校验
-        questionBankQuestionService.validQuestionBankQuestion(questionBankQuestion, false);
         // 判断是否存在
         long id = questionBankQuestionUpdateRequest.getId();
         QuestionBankQuestion oldQuestionBankQuestion = questionBankQuestionService.getById(id);
@@ -177,25 +172,22 @@ public class QuestionBankQuestionController {
     }
 
     /**
-     * 分页获取当前登录用户创建的题目题库列表
+     * 删除题库
      *
-     * @param questionBankQuestionQueryRequest
      * @return
      */
-    @PostMapping("/my/list/page/vo")
-    public BaseResponse<Page<QuestionBankQuestionVO>> listMyQuestionBankQuestionVOByPage(@RequestBody QuestionBankQuestionQueryRequest questionBankQuestionQueryRequest) {
-        ThrowUtils.throwIf(questionBankQuestionQueryRequest == null, ErrorCode.PARAMS_ERROR);
-        // 补充查询条件，只查询当前登录用户的数据
-        User loginUser = userService.getLoginUser();
-        long current = questionBankQuestionQueryRequest.getCurrent();
-        long size = questionBankQuestionQueryRequest.getPageSize();
-        // 限制爬虫
-        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        // 查询数据库
-        Page<QuestionBankQuestion> questionBankQuestionPage = questionBankQuestionService.page(new Page<>(current, size),
-                questionBankQuestionService.getQueryWrapper(questionBankQuestionQueryRequest));
-        // 获取封装类
-        return ResultUtils.success(questionBankQuestionService.getQuestionBankQuestionVOPage(questionBankQuestionPage));
+    @PostMapping("/remove")
+    @SaCheckRole(UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> removeQuestionBank(@RequestBody QuestionBankQuestionRemoveRequest questionBankQuestionRemoveRequest) {
+        ThrowUtils.throwIf(questionBankQuestionRemoveRequest == null || questionBankQuestionRemoveRequest.getQuestionBankId() <= 0 || questionBankQuestionRemoveRequest.getQuestionId() <= 0, ErrorCode.PARAMS_ERROR);
+        Long questionBankId = questionBankQuestionRemoveRequest.getQuestionBankId();
+        Long questionId = questionBankQuestionRemoveRequest.getQuestionId();
+
+        LambdaQueryWrapper<QuestionBankQuestion> queryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class).
+                eq(QuestionBankQuestion::getQuestionBankId, questionBankId)
+                .eq(QuestionBankQuestion::getQuestionId, questionId);
+        boolean result = questionBankQuestionService.remove(queryWrapper);
+        return ResultUtils.success(result);
     }
 
 }

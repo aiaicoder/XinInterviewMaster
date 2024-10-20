@@ -1,4 +1,4 @@
-package com.xin.MianshiTong.config;
+package com.xin.MianshiTong.config.COS;
 
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;

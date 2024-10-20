@@ -1,4 +1,4 @@
-package com.xin.MianshiTong.config;
+package com.xin.MianshiTong.config.SaToken;
 
 import cn.dev33.satoken.interceptor.SaInterceptor;
 import org.springframework.context.annotation.Configuration;
